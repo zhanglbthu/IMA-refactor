@@ -1,0 +1,6 @@
+setup.py
+mise.egg-info/PKG-INFO
+mise.egg-info/SOURCES.txt
+mise.egg-info/dependency_links.txt
+mise.egg-info/top_level.txt
+utils/libmise/mise.cpp
