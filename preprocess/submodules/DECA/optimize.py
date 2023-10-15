@@ -58,17 +58,17 @@ class Optimizer(object):
         self.deca = DECA(config=deca_cfg, device=device)
 
     def optimize(self, shape, exp, landmark, pose, name, visualize_images, savefolder, intrinsics, json_path, size,
-                 save_name):
+                 save_name, extrinsic):
         num_img = pose.shape[0]
         # we need to project to [-1, 1] instead of [0, size], hence modifying the cam_intrinsics as below
         cam_intrinsics = torch.tensor(
             [-1 * intrinsics[0] / size * 2, intrinsics[1] / size * 2, intrinsics[2] / size * 2 - 1,
              intrinsics[3] / size * 2 - 1]).float().cuda()
 
-        if GLOBAL_POSE:
-            translation_p = torch.tensor([0, 0, -4]).float().cuda()
-        else:
-            translation_p = torch.tensor([0, 0, -4]).unsqueeze(0).expand(num_img, -1).float().cuda()
+        # if GLOBAL_POSE:
+        #     translation_p = torch.tensor([0, 0, -4]).float().cuda()
+        # else:
+        #     translation_p = torch.tensor([0, 0, -4]).unsqueeze(0).expand(num_img, -1).float().cuda()
 
         if GLOBAL_POSE:
             pose = torch.cat([torch.zeros_like(pose[:, :3]), pose], dim=1)
@@ -78,7 +78,7 @@ class Optimizer(object):
         if use_iris:
             pose = torch.cat([pose, torch.zeros_like(pose[:, :6])], dim=1)
 
-        translation_p = nn.Parameter(translation_p)
+        # translation_p = nn.Parameter(translation_p)
         pose = nn.Parameter(pose)
         exp = nn.Parameter(exp)
         shape = nn.Parameter(shape)
@@ -86,11 +86,13 @@ class Optimizer(object):
         # set optimizer
         if json_path is None:
             opt_p = torch.optim.Adam(
-                [translation_p, pose, exp, shape],
+                # [translation_p, pose, exp, shape],
+                [pose, exp, shape],
                 lr=1e-2)
         else:
             opt_p = torch.optim.Adam(
-                [translation_p, pose, exp],
+                # [translation_p, pose, exp],
+                [pose, exp],
                 lr=1e-2)
 
         # optimization steps
@@ -111,11 +113,15 @@ class Optimizer(object):
 
             # perspective projection
             # Global rotation is handled in FLAME, set camera rotation matrix to identity
-            ident = torch.eye(3).float().cuda().unsqueeze(0).expand(num_img, -1, -1)
+            # ident = torch.eye(3).float().cuda().unsqueeze(0).expand(num_img, -1, -1)
+            # convert extrinsic from ndarray to tensor
+            extrinsic = torch.tensor(extrinsic).float().cuda()
             if GLOBAL_POSE:
-                w2c_p = torch.cat([ident, translation_p.unsqueeze(0).expand(num_img, -1).unsqueeze(2)], dim=2)
+                # w2c_p = torch.cat([ident, translation_p.unsqueeze(0).expand(num_img, -1).unsqueeze(2)], dim=2)
+                w2c_p = extrinsic.unsqueeze(0).expand(num_img, -1, -1)
             else:
-                w2c_p = torch.cat([ident, translation_p.unsqueeze(2)], dim=2)
+                # w2c_p = torch.cat([ident, translation_p.unsqueeze(2)], dim=2)
+                w2c_p = extrinsic.unsqueeze(0).expand(num_img, -1, -1)
 
             trans_landmarks2d = projection(landmarks2d_p, cam_intrinsics, w2c_p)
             ## landmark loss
@@ -123,8 +129,8 @@ class Optimizer(object):
             total_loss = landmark_loss2 + torch.mean(torch.square(shape)) * 1e-2 + torch.mean(torch.square(exp)) * 1e-2
             total_loss += torch.mean(torch.square(exp[1:] - exp[:-1])) * 1e-1
             total_loss += torch.mean(torch.square(pose[1:] - pose[:-1])) * 10
-            if not GLOBAL_POSE:
-                total_loss += torch.mean(torch.square(translation_p[1:] - translation_p[:-1])) * 10
+            # if not GLOBAL_POSE:
+            #     total_loss += torch.mean(torch.square(translation_p[1:] - translation_p[:-1])) * 10
 
             opt_p.zero_grad()
             total_loss.backward()
@@ -177,7 +183,7 @@ class Optimizer(object):
                             json.dump(dict, fp)
 
     def run(self, deca_code_file, face_kpts_file, iris_file, savefolder, image_path, json_path, intrinsics, size,
-            save_name):
+            save_name, extrinsic):
         deca_code = json.load(open(deca_code_file, 'r'))
         face_kpts = json.load(open(face_kpts_file, 'r'))
         try:
@@ -220,7 +226,7 @@ class Optimizer(object):
         visualize_images = torch.cat(visualize_images, dim=0)
         # optimize
         self.optimize(shape, exps, landmarks, poses, name, visualize_images, savefolder, intrinsics, json_path, size,
-                      save_name)
+                      save_name, extrinsic)
 
 
 if __name__ == '__main__':
@@ -233,7 +239,16 @@ if __name__ == '__main__':
     parser.add_argument('--cx', type=float, default=256)
     parser.add_argument('--cy', type=float, default=256)
     parser.add_argument('--size', type=int, default=512)
-
+    
+    cam_json_file = '/bufferhdd/zhanglibo/project/IMavatar/data/camera_parameters.json'
+    with open(cam_json_file, "r") as f:
+        camera_parameters = json.load(f)
+    
+    camera_index = '400009'
+    camera_parameter = camera_parameters[camera_index]
+    extrinsic = np.array(camera_parameter['RT'])
+    assert extrinsic.shape == (3, 4)
+    
     args = parser.parse_args()
     model = Optimizer()
 
@@ -248,5 +263,5 @@ if __name__ == '__main__':
     model.run(deca_code_file=os.path.join(args.path, 'code.json'),
               face_kpts_file=os.path.join(args.path, 'keypoint.json'),
               iris_file=os.path.join(args.path, 'iris.json'), savefolder=args.path, image_path=image_path,
-              json_path=json_path, intrinsics=intrinsics, size=args.size, save_name=args.save_name)
+              json_path=json_path, intrinsics=intrinsics, size=args.size, save_name=args.save_name, extrinsic=extrinsic)
 

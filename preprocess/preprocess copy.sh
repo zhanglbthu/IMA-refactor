@@ -1,10 +1,10 @@
 #######################################################
 # Things you need to modify
-subject_name='test_00_1014'
+subject_name='test_00_1015'
 path='/bufferhdd/zhanglibo/project/IMavatar/data/datasets'
 video_folder=$path/$subject_name
-video_names='08_400009.mp4 08_400018.mp4 08_400023.mp4 08_400042.mp4'
-shape_video=''
+video_names='08_400009.mp4'
+shape_video='08_400009.mp4'
 fps=30
 # Center crop
 crop="512:512:0:0"
@@ -55,7 +55,7 @@ do
   mkdir -p $video_folder/$subject_name/"${array[0]}"/"mask"
   ffmpeg -i $video_folder/"${array[0]}_cropped_matte.mp4" -q:v 2 $video_folder/$subject_name/"${array[0]}"/"mask"/"%d.png"
 done
-exit 0
+
 echo "DECA FLAME parameter estimation"
 cd $path_deca
 for video in $video_names

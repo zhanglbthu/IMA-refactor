@@ -73,7 +73,7 @@ def main(args):
         if args.saveCode:
             dict = {}
             for k, v in codedict.items():
-                if k in ['pose', 'cam', 'exp', 'shape']:
+                if k in ['pose', 'exp', 'shape']:
                     dict[k] = v.detach().cpu().numpy().tolist()
             code[name] = dict
         if args.saveMat:
