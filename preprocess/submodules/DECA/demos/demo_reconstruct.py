@@ -30,14 +30,23 @@ from decalib.utils.config import cfg as deca_cfg
 from decalib.utils.tensor_cropper import transform_points
 
 def main(args):
+    image_folders = args.image_paths.split(',')
+    savefolders = args.save_paths.split(',')
     # if args.rasterizer_type != 'standard':
     #     args.render_orig = False
-    savefolder = args.savefolder
-    device = args.device
-    os.makedirs(savefolder, exist_ok=True)
+    # savefolder = args.savefolder # change
+    device = args.device # * cuda
+    # os.makedirs(savefolder, exist_ok=True) # change
+    for savefolder in savefolders:
+        os.makedirs(savefolder, exist_ok=True)
 
     # load test images
-    testdata = datasets.TestData(args.inputpath, iscrop=args.iscrop, face_detector=args.detector, sample_step=args.sample_step)
+    
+    # change
+    testdatas = []
+    for image_folder in image_folders:
+        testdatas.append(datasets.TestData(image_folder, iscrop=args.iscrop, face_detector=args.detector, sample_step=args.sample_step))
+    testdata = datasets.TestData(image_folders[0], iscrop=args.iscrop, face_detector=args.detector, sample_step=args.sample_step)
 
     # run DECA
     deca_cfg.model.use_tex = args.useTex
@@ -47,9 +56,14 @@ def main(args):
     code = {}
     for i in tqdm(range(len(testdata))):
         name = testdata[i]['imagename']
-        images = testdata[i]['image'].to(device)[None,...]
+        # images = testdata[i]['image'].to(device)[None,...]
+        images_all = []
+        codedict_all = []
+        for j in range(len(testdatas)):
+            images_all.append(testdatas[j][i]['image'].to(device)[None,...])
         with torch.no_grad():
-            codedict = deca.encode(images)
+            for images in images_all:
+                codedict_all.append(deca.encode(images))
             # opdict, visdict = deca.decode(codedict) #tensor
             if args.render_orig:
                 tform = testdata[i]['tform'][None, ...]
@@ -57,7 +71,10 @@ def main(args):
                 original_image = testdata[i]['original_image'][None, ...].to(device)
                 _, orig_visdict = deca.decode(codedict, render_orig=True, original_image=original_image, tform=tform)
                 orig_visdict['inputs'] = original_image
-
+        # 对codedict_all中的dict取平均，得到一个新的dict：codedict
+        codedict = {}
+        for key in codedict_all[0].keys():
+            codedict[key] = torch.mean(torch.stack([codedict_all[j][key] for j in range(len(codedict_all))]), dim=0)
         if args.saveDepth or args.saveKpt or args.saveObj or args.saveMat or args.saveImages:
             os.makedirs(os.path.join(savefolder, name), exist_ok=True)
         # -- save results
@@ -94,9 +111,12 @@ def main(args):
                     cv2.imwrite(os.path.join(savefolder, name, 'orig_' + name + '_' + vis_name +'.jpg'), util.tensor2image(orig_visdict[vis_name][0]))
     if args.saveCode:
         import json
-        json_folder = savefolder.replace('deca', '')
-        json.dump(code, open(os.path.join(json_folder, 'code.json'), 'w'))
-    print(f'-- please check the results in {savefolder}')
+        # json_folder = savefolder.replace('deca', '')
+        # json.dump(code, open(os.path.join(json_folder, 'code.json'), 'w'))
+        for savefolder in savefolders:
+            json_folder = savefolder.replace('deca', '')
+            json.dump(code, open(os.path.join(json_folder, 'code.json'), 'w'))
+            print(f'-- please check the results in {savefolder}')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='DECA: Detailed Expression Capture and Animation')
@@ -138,4 +158,9 @@ if __name__ == '__main__':
                         help='whether to save FLAME parameters')
     parser.add_argument('--saveImages', default=False, type=lambda x: x.lower() in ['true', '1'],
                         help='whether to save visualization output as seperate images' )
+    # change from single view to multi views
+    parser.add_argument('-images', '--image_paths', default='empty', type=str, 
+                        help = 'multi views image paths')
+    parser.add_argument('-saves', '--save_paths', default='empty', type=str, 
+                        help = 'multi views save paths')
     main(parser.parse_args())
