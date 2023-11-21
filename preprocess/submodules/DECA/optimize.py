@@ -61,7 +61,7 @@ class Optimizer(object):
                  save_name):
         num_img = pose.shape[0]
         n_view = len(visualize_images_all)
-        assert n_view == 4
+
         # we need to project to [-1, 1] instead of [0, size], hence modifying the cam_intrinsics as below
         cam_intrinsics_all = []
         for intrinsics in intrinsics_all:
@@ -249,7 +249,7 @@ class Optimizer(object):
     def run(self, deca_code_files, face_kpts_files, iris_files, savefolders, image_paths, json_path, intrinsics_all, size,
             save_name):
         n_view = len(deca_code_files)
-        assert n_view == 4
+
         deca_code = json.load(open(deca_code_files[0], 'r'))
         face_kpts_all = []
         iris_kpts_all = []
@@ -358,8 +358,10 @@ if __name__ == '__main__':
     intrinsics_all = []
     for index in camera_idx:
         K = camera_parameters[index]['K']
-        intrinsics_all.append([K[0][0], K[1][1], K[0][2] + 89, K[1][2]])
+        intrinsics_all.append([K[0][0], K[1][1], K[0][2] + 80, K[1][2]])
+        # intrinsics_all.append([args.fx, args.fy, args.cx, args.cy])
         
+    # change
     # intrinsics = [args.fx, args.fy, args.cx, args.cy]
     deca_code_files = []
     face_kpts_files = []

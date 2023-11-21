@@ -1,7 +1,7 @@
 #######################################################
 # Things you need to modify
-subject_name='test_00_1015'
-path='/bufferhdd/zhanglibo/project/IMavatar/data/datasets'
+subject_name='08'
+path='/bufferhdd/zhanglibo/project/IMavatar/data/new_datasets'
 video_folder=$path/$subject_name
 video_names='08_400009.mp4'
 shape_video='08_400009.mp4'

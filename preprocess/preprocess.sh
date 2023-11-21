@@ -1,13 +1,12 @@
 #######################################################
 # Things you need to modify
-subject_name='test_1017'
-path='/bufferhdd/zhanglibo/project/IMavatar/data/datasets'
+subject_name='shout'
+path='/bufferhdd/zhanglibo/project/IMavatar/data/datasets_month11/thin'
 video_folder=$path/$subject_name
-video_names='08_400009.mp4 08_400018.mp4 08_400023.mp4 08_400042.mp4'
-shape_video='08_400009.mp4'
+video_names='400009.mp4 400018.mp4 400023.mp4 400042.mp4'
 fps=30
 # Center crop
-crop="512:512:0:0"
+# crop="1334:1334:0:200"
 resize=512
 # fx, fy, cx, cy in pixels, need to adjust with resizing and cropping
 # fx=1268.14515
@@ -21,40 +20,40 @@ path_deca=$(pwd)'/submodules/DECA'
 path_parser=$(pwd)'/submodules/face-parsing.PyTorch'
 ########################################################
 set -e
-echo "crop and resize video"
-cd $pwd
-for video in $video_names
-do
-  video_path=$video_folder/$video
-  echo $video
-  IFS='.' read -r -a array <<< $video
-  echo $video_folder/$subject_name/"${array[0]}"/"image"
-  ffmpeg -y -i $video_path -vf "fps=$fps, crop=$crop, scale=$resize:$resize" -c:v libx264 $video_folder/"${array[0]}_cropped.mp4"
-done
-echo "background/foreground segmentation"
-cd $path_modnet
-for video in $video_names
-do
-  video_path=$video_folder/$video
-  echo $video
-  IFS='.' read -r -a array <<< $video
-  mkdir -p $video_folder/$subject_name/"${array[0]}"
-  python -m demo.video_matting.custom.run --video $video_folder/"${array[0]}_cropped.mp4" --result-type matte --fps $fps
-done
-echo "save the images and masks with ffmpeg"
-# sudo apt install ffmpeg
-cd $pwd
-for video in $video_names
-do
-  video_path=$video_folder/$video
-  echo $video
-  IFS='.' read -r -a array <<< $video
-  echo $video_folder/$subject_name/"${array[0]}"/"image"
-  mkdir -p $video_folder/$subject_name/"${array[0]}"/"image"
-  ffmpeg -i $video_folder/"${array[0]}_cropped.mp4" -q:v 2 $video_folder/$subject_name/"${array[0]}"/"image"/"%d.png"
-  mkdir -p $video_folder/$subject_name/"${array[0]}"/"mask"
-  ffmpeg -i $video_folder/"${array[0]}_cropped_matte.mp4" -q:v 2 $video_folder/$subject_name/"${array[0]}"/"mask"/"%d.png"
-done
+# echo "crop and resize video"
+# cd $pwd
+# for video in $video_names
+# do
+#   video_path=$video_folder/$video
+#   echo $video
+#   IFS='.' read -r -a array <<< $video
+#   echo $video_folder/$subject_name/"${array[0]}"/"image"
+#   ffmpeg -y -i $video_path -vf "fps=$fps, crop=$crop, scale=$resize:$resize" -c:v libx264 $video_folder/"${array[0]}_cropped.mp4"
+# done
+# echo "background/foreground segmentation"
+# cd $path_modnet
+# for video in $video_names
+# do
+#   video_path=$video_folder/$video
+#   echo $video
+#   IFS='.' read -r -a array <<< $video
+#   mkdir -p $video_folder/$subject_name/"${array[0]}"
+#   python -m demo.video_matting.custom.run --video $video_folder/"${array[0]}_cropped.mp4" --result-type matte --fps $fps
+# done
+# echo "save the images and masks with ffmpeg"
+# # sudo apt install ffmpeg
+# cd $pwd
+# for video in $video_names
+# do
+#   video_path=$video_folder/$video
+#   echo $video
+#   IFS='.' read -r -a array <<< $video
+#   echo $video_folder/$subject_name/"${array[0]}"/"image"
+#   mkdir -p $video_folder/$subject_name/"${array[0]}"/"image"
+#   ffmpeg -i $video_folder/"${array[0]}_cropped.mp4" -q:v 2 $video_folder/$subject_name/"${array[0]}"/"image"/"%d.png"
+#   mkdir -p $video_folder/$subject_name/"${array[0]}"/"mask"
+#   ffmpeg -i $video_folder/"${array[0]}_cropped_matte.mp4" -q:v 2 $video_folder/$subject_name/"${array[0]}"/"mask"/"%d.png"
+# done
 
 # change : get image paths
 combined_image_path=""
