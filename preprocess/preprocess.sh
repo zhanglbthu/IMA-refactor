@@ -1,9 +1,9 @@
 #######################################################
 # Things you need to modify
-subject_name='shout'
-path='/bufferhdd/zhanglibo/project/IMavatar/data/datasets_month11/thin'
+subject_name='gray'
+path='/bufferhdd/zhanglibo/project/IMavatar/data/retarget'
 video_folder=$path/$subject_name
-video_names='400009.mp4 400018.mp4 400023.mp4 400042.mp4'
+video_names='220700191.mp4, 221501007.mp4, 222200042.mp4, 222200049.mp4'
 fps=30
 # Center crop
 # crop="1334:1334:0:200"
@@ -102,7 +102,7 @@ do
 done
 
 # change
-camera_idx="400009,400018,400023,400042"
+camera_idx="220700191,221501007,222200042,222200049"
 
 combined_path=""
 for video in $video_names; do
